@@ -1,21 +1,18 @@
 import express from "express"
 import cookieParser from "cookie-parser"
 
-import employeeRoutes from "./src/routes/employee.js"
-import registerEmployeeRoutes from "./src/routes/registerEmployee.js"
-
-
+import customerRoutes from "./src/routes/customer.js"
+import registerCustomerRoutes from "./src/routes/registerCustomer.js"
 
 const app = express();
 
 app.use(cookieParser());
 
-//Que acepte JSON desde postman
+// Que acepte JSON desde postman
 app.use(express.json());
 
+app.use("/api/customers", customerRoutes);
 
-app.use("/api/employees", employeeRoutes);
-
-app.use("/api/registerEmployee", registerEmployeeRoutes)
+app.use("/api/registerCustomer", registerCustomerRoutes);
 
 export default app;

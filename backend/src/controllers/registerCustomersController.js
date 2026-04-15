@@ -3,14 +3,14 @@ import crypto from "crypto";
 import jsonwebtoken from "jsonwebtoken";
 import bcryptjs from "bcryptjs";
 
-import employeeModel from "../models/employees.js";
+import customerModel from "../models/customers.js";
 
 import { config } from "../config.js";
 import { register } from "module";
 
-const registerEmployeeController = {};
+const registerCustomerController = {};
 
-registerEmployeeController.registerEmployee = async (req, res) => {
+registerCustomerController.registerCustomer = async (req, res) => {
     try {
         let {
             name,
@@ -19,46 +19,42 @@ registerEmployeeController.registerEmployee = async (req, res) => {
             password,
             phone,
             address,
-            isVerified:
+            isVerified,
             loginAttemps,
             timeOut
         } = req.body;
 
-        const existingEmployee = await employeeModel.findOne({ email });
-        if (existingEmployee) {
+        const existingCustomer = await customerModel.findOne({ email });
+        if (existingCustomer) {
             return res.status(400).json({ message: "Email already in use" });
         }
 
         const passwordHash = await bcryptjs.hash(password, 10);
 
-        const newEmployee = new employeeModel({
+        const newCustomer = new customerModel({
             name,
             lastName,
             email,
-            password,
+            password: passwordHash,
             phone,
             address,
-            isVerified:
+            isVerified,
             loginAttemps,
             timeOut
         });
 
-        await newEmployee.save();
+        await newCustomer.save();
 
         const verificationCode = crypto.randomBytes(3).toString("hex");
 
-        // Guardamos este codigo en un token
         const tokenCode = jsonwebtoken.sign(
-            //Que vamos a guardar?
             { email, verificationCode },
-            //Secret key
             config.JWT.secret,
-            //Cuando expira
             { expiresIn: "15m" }
         );
 
         res.cookie("verificationTokenCookie", tokenCode, {
-            maxAge: 15 * 60 * 1000, // 15 minutes
+            maxAge: 15 * 60 * 1000,
         });
 
         const transporter = nodemailer.createTransport({
@@ -73,8 +69,8 @@ registerEmployeeController.registerEmployee = async (req, res) => {
             from: config.email.user_email,
             to: email,
             subject: "Verificación de cuenta",
-            text: "Para verificar tu cuenta, utiliza este código: " + verificationCode + "Expira en 15 minutos"
-        }
+            text: "Para verificar tu cuenta, utiliza este código: " + verificationCode + " Expira en 15 minutos"
+        };
 
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
@@ -82,18 +78,15 @@ registerEmployeeController.registerEmployee = async (req, res) => {
                 return res.status(500).json({ message: "Error sending verification email" });
             }
             res.status(200).json({ message: "Email sent: " + info.response });
-
         });
 
-
-
     } catch (error) {
-        console.log("Error" + error);
+        console.log("Error " + error);
         return res.status(500).json({ message: "Internal Server Error" });
     }
 };
 
-registerEmployeeController.verifyEmail = async (req, res) => {
+registerCustomerController.verifyEmail = async (req, res) => {
   try {
     const { verificationCode } = req.body;
 
@@ -104,22 +97,21 @@ registerEmployeeController.verifyEmail = async (req, res) => {
     const { email, verificationCode: storedCode } = decoded;
 
     if (verificationCode !== storedCode) {
-      return res.status(400).json({ message: "Invalid code" })
+      return res.status(400).json({ message: "Invalid code" });
     }
 
-    const employee = await employeeModel.findOne({email});
-    employee.isVerified = true;
-    await employee.save();
+    const customer = await customerModel.findOne({ email });
+    customer.isVerified = true;
+    await customer.save();
 
-    res.clearCookie("verificationTokenCookie")
+    res.clearCookie("verificationTokenCookie");
 
-    res.json({ message: "Email verified successfully" })
+    res.json({ message: "Email verified successfully" });
 
-  }
-  catch (error) { 
-    console.error("Error:" + error);
+  } catch (error) { 
+    console.error("Error: " + error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
-export default registerEmployeeController;
+export default registerCustomerController;

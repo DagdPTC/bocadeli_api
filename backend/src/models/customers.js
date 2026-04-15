@@ -1,6 +1,6 @@
 import mongoose, {Schema, model} from "mongoose"
 
-const employeeSchema = new Schema({
+const customerSchema = new Schema({
     name:{
         type: String
     },
@@ -33,4 +33,4 @@ const employeeSchema = new Schema({
     strict: false
 })
 
-export default model("Employee", employeeSchema)
+export default model("Customer", customerSchema)
